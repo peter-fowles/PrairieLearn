@@ -163,8 +163,9 @@
         "workersExecutionMode": {
             "description": "The type of worker to use (either native or containerized in Docker)",
             "enum": [
-                "native",
                 "container",
+                "dev-container",
+                "native",
                 "disabled"
             ]
         },
