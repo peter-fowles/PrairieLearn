@@ -1,6 +1,6 @@
 // @ts-check
 const readline = require('readline');
-const { FunctionMissingError } = require('./lib/code-caller');
+const { FunctionMissingError } = require('./lib/code-caller/code-caller-shared');
 const { CodeCallerNative } = require('./lib/code-caller/code-caller-native');
 
 /**
