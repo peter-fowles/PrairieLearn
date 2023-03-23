@@ -20,14 +20,14 @@ chown -f postgres:postgres $PGDATA
 su postgres -c 'pg_ctl status' >/dev/null 2>&1
 if [[ $? == 4 ]]; then
     echo "Making new postgres database at ${PGDATA}"
-    su postgres -c "initdb" >/dev/null 2>&1
+    su postgres -c "/usr/lib/postgresql/14/bin/initdb" >/dev/null 2>&1
     INIT_RESOLVE=0
     ACTION=start
 fi
 
 # Only locally start postgres if we weren't given a PG_HOST environment variable
 if [[ -z "$PG_HOST" ]]; then
-  su postgres -c "pg_ctl --silent --log=${PGDATA}/postgresql.log ${ACTION}"
+    service postgresql start
 fi
 
 if [[ "$ACTION" == "start" ]]; then
