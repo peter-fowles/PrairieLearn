@@ -96,5 +96,8 @@ module.exports = {
         jquery: true,
       },
     },
+    {
+      files: ['packages/**/*.{js,ts,mjs}'],
+    },
   ],
 };

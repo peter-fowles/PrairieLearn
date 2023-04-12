@@ -31,6 +31,12 @@ const { filesize } = require('filesize');
 const url = require('url');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const compiledAssets = require('@prairielearn/compiled-assets');
+const {
+  SCHEMA_MIGRATIONS_PATH,
+  initBatchedMigrations,
+  startBatchedMigrations,
+  stopBatchedMigrations,
+} = require('@prairielearn/migrations');
 
 const { logger, addFileLogging } = require('@prairielearn/logger');
 const config = require('./lib/config');
@@ -1657,6 +1663,10 @@ module.exports.initExpress = function () {
     '/pl/administrator/courseRequests/',
     require('./pages/administratorCourseRequests/administratorCourseRequests')
   );
+  app.use(
+    '/pl/administrator/batchedMigrations',
+    require('./pages/administratorBatchedMigrations/administratorBatchedMigrations')
+  );
 
   //////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////
@@ -1980,11 +1990,27 @@ if (config.startServer) {
         logger.verbose('Successfully connected to database');
       },
       async () => {
+        // We need to do this before we run migrations, as some migrations will
+        // call `enqueueBatchedMigration` which requires this to be initialized.
+        const runner = initBatchedMigrations({
+          project: 'prairielearn',
+          directories: [path.join(__dirname, 'batched-migrations')],
+        });
+
+        runner.on('error', (err) => {
+          logger.error('Batched migration runner error', err);
+          Sentry.captureException(err);
+        });
+      },
+      async () => {
         // Using the `--migrate-and-exit` flag will override the value of
         // `config.runMigrations`. This allows us to use the same config when
         // running migrations as we do when we start the server.
         if (config.runMigrations || argv['migrate-and-exit']) {
-          await migrations.init(path.join(__dirname, 'migrations'), 'prairielearn');
+          await migrations.init(
+            [path.join(__dirname, 'migrations'), SCHEMA_MIGRATIONS_PATH],
+            'prairielearn'
+          );
 
           if (argv['migrate-and-exit']) {
             logger.info('option --migrate-and-exit passed, running DB setup and exiting');
@@ -2048,6 +2074,14 @@ if (config.startServer) {
           queryCounter.addCallback((observableResult) => {
             observableResult.observe(pool.queryCount);
           });
+        });
+      },
+      async () => {
+        // Now that all migrations have been run, we can start executing any
+        // batched migrations that may have been enqueued by migrations.
+        startBatchedMigrations({
+          workDurationMs: config.batchedMigrationsWorkDurationMs,
+          sleepDurationMs: config.batchedMigrationsSleepDurationMs,
         });
       },
       async () => {
@@ -2192,6 +2226,7 @@ if (config.startServer) {
             externalGraderResults.stop(),
             cron.stop(),
             serverJobs.stop(),
+            stopBatchedMigrations(),
           ]);
           results.forEach((r) => {
             if (r.status === 'rejected') {
