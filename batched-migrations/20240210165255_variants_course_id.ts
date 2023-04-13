@@ -19,8 +19,9 @@ export default makeBatchedMigration({
         questions AS q
       WHERE
         v.course_id = NULL AND
-        v.question_id = q.id
-        AND id >= $min AND id <= $max`,
+        v.question_id = q.id AND
+        id >= $min AND
+        id <= $max`,
       {min, max}
     );
   },
