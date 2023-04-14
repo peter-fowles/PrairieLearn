@@ -1,5 +1,5 @@
-import { makeBatchedMigration } from '@prairielearn/migrations';
-import { queryOneRowAsync, queryAsync } from '@prairielearn/postgres';
+const { makeBatchedMigration } = require('@prairielearn/migrations');
+const { queryOneRowAsync, queryAsync } = require('@prairielearn/postgres');
 
 export default makeBatchedMigration({
   async getParameters() {
@@ -10,8 +10,9 @@ export default makeBatchedMigration({
     };
   },
 
-  async execute(min: bigint, max: bigint) {
-    await queryAsync(`
+  async execute(min, max) {
+    await queryAsync(
+      `
       UPDATE variants AS v
       SET
         course_id = q.course_id
@@ -22,7 +23,8 @@ export default makeBatchedMigration({
         v.question_id = q.id AND
         id >= $min AND
         id <= $max`,
-      {min, max}
+      { min, max }
     );
   },
 });
+
