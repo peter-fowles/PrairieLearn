@@ -33,6 +33,16 @@ if [ "$?" -ne 0 ] ; then
 $STUDENT_COMPILE_OUT"
 fi
 
+if [ -f /grade/tests/signatureValidation.json ] ; then
+    if java -cp "$CLASSPATH" SignatureValidator ; then
+        echo "Signature validation successful"
+    elif [ -f $RESULTS_FILE ] ; then
+        exit 0
+    else
+        exception "Signature validation failed without generating a result. Please contact the instructor."
+    fi
+fi
+
 TEST_COMPILE_OUT=$(javac $TEST_FILES 2>&1)
 if [ "$?" -ne 0 ] ; then
     echo "$TEST_COMPILE_OUT"
